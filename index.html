@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚠️ ALERTA DE SISTEMA ⚠️</title>
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: black;
+            overflow: hidden; font-family: 'Courier New', Courier, monospace;
+            touch-action: none; 
+        }
+
+        /* Lienzos */
+        #matrix { display: block; position: absolute; top: 0; left: 0; z-index: 1; transition: opacity 1s; }
+        #canvas-fuegos { display: block; position: absolute; top: 0; left: 0; z-index: 15; pointer-events: none; transition: opacity 1s; }
+
+        /* --- PANTALLA TRAMPA --- */
+        #pantalla-inicio {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: black; z-index: 500;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #fff; cursor: pointer; transition: opacity 0.5s;
+        }
+        #pantalla-inicio h1 { font-size: 1.5rem; border: 1px solid #fff; padding: 15px; background: rgba(255,255,255,0.1); text-align: center;}
+        #pantalla-inicio p { font-size: 0.9rem; opacity: 0.7; }
+
+        /* --- TERMINAL HACKER --- */
+        #terminal {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); z-index: 10;
+            width: 90%; max-width: 650px;
+            color: #fff; 
+            font-size: 1.3rem; 
+            text-shadow: 0 0 5px #fff; 
+            pointer-events: none; transition: opacity 0.5s;
+        }
+
+        .line { margin: 10px 0; min-height: 1.6rem; opacity: 0; line-height: 1.4; }
+        #progress-bar { color: #fff; font-weight: bold; letter-spacing: 2px; }
+        #line-alert { color: #ff3333; text-shadow: 0 0 10px #ff3333; font-weight: bold; margin-top: 15px; font-size: 1.4rem; }
+        #line-action { color: #ffcc00; text-shadow: 0 0 8px #ffcc00; font-weight: bold; margin-top: 20px; background: rgba(255, 204, 0, 0.1); padding: 10px; border: 1px solid #ffcc00; }
+        .cursor { display: inline-block; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- MENSAJE IRROMPIBLE Y BOTÓN --- */
+        #mensaje-irrompible {
+            position: absolute; bottom: 8%; left: 50%;
+            transform: translateX(-50%); z-index: 20;
+            width: 95%; text-align: center;
+            color: #0f0; font-size: 1rem; text-shadow: 0 0 8px #0f0;
+            opacity: 0; pointer-events: none; transition: opacity 1s ease-in-out;
+        }
+        
+        #mensaje-irrompible .destaque {
+            color: #ffffff; font-weight: bold; font-size: 1.25rem;
+            text-shadow: 0 0 10px #ffffff; display: block; margin-top: 10px;
+        }
+
+        #btn-sorpresa {
+            margin-top: 20px; padding: 12px 25px; font-size: 1.1rem;
+            font-family: 'Courier New', Courier, monospace; font-weight: bold;
+            background: rgba(255, 255, 255, 0.1); color: #fff; border: 2px solid #fff;
+            border-radius: 8px; cursor: pointer; text-shadow: 0 0 5px #fff;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5); pointer-events: auto;
+            animation: latido 1.5s infinite;
+        }
+
+        @keyframes latido {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(255, 255, 255, 0.5); }
+            50% { transform: scale(1.08); box-shadow: 0 0 25px rgba(255, 255, 255, 0.9); }
+        }
+
+        /* --- GALERÍA DE FOTOS PRO MAX --- */
+        #pantalla-galeria {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0d1b2a, #1b263b, #415a77); 
+            z-index: 1000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 2s ease;
+        }
+
+        .tarjeta-foto {
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 20px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; width: 85%; max-width: 400px;
+        }
+
+        .contenedor-imagen {
+            width: 100%; height: 50vh; display: flex; justify-content: center; align-items: center;
+            border-radius: 15px; overflow: hidden; background: rgba(0,0,0,0.3);
+        }
+
+        #imagen-galeria {
+            max-width: 100%; max-height: 100%; object-fit: contain;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .titulo-galeria { color: #fff; font-family: sans-serif; font-size: 1.5rem; margin-bottom: 15px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .controles-galeria { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        .btn-nav {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            font-size: 1.5rem; width: 50px; height: 50px; border-radius: 50%;
+            cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background 0.3s;
+        }
+        .btn-nav:active { background: rgba(255,255,255,0.5); }
+        #contador-fotos { color: rgba(255,255,255,0.7); font-family: sans-serif; font-size: 1rem; }
+        
+        .instruccion-swipe { color: rgba(255,255,255,0.5); font-family: sans-serif; font-size: 0.85rem; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+        /* --- PANTALLA FINAL NEÓN --- */
+        #pantalla-final {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #050505; z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 2s ease;
+        }
+
+        .neon-texto {
+            font-family: 'Courier New', Courier, monospace; text-align: center; margin: 0; padding: 10px;
+        }
+
+        .neon-azul {
+            color: #fff; font-size: 2.2rem; font-weight: bold; letter-spacing: 2px;
+            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #0ff, 0 0 40px #0ff, 0 0 80px #0ff;
+        }
+
+        .neon-rosa {
+            color: #fff; font-size: 1.8rem; font-weight: bold; margin-top: 30px; letter-spacing: 1px;
+            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff00ff, 0 0 40px #ff00ff, 0 0 80px #ff00ff;
+        }
+
+        .btn-regresar-galeria {
+            margin-top: 60px; padding: 10px 20px; font-size: 1rem; font-family: sans-serif;
+            background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.6);
+            border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
+        }
+        .btn-regresar-galeria:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: #fff; }
+
+        @media (max-width: 600px) {
+            #terminal { font-size: 1.05rem; } #line-alert { font-size: 1.15rem; }
+            #mensaje-irrompible { font-size: 0.85rem; } #mensaje-irrompible .destaque { font-size: 1.1rem; }
+            .tarjeta-foto { padding: 15px; width: 90%; } .contenedor-imagen { height: 45vh; }
+            .neon-azul { font-size: 1.8rem; } .neon-rosa { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="audio-musica" preload="auto"><source src="musica.mp3" type="audio/mpeg"></audio>
+
+    <div id="pantalla-inicio" onclick="iniciarAtaque()">
+        <h1>> INICIAR DIAGNOSTICO DEL SISTEMA</h1>
+        <p>(Toca la pantalla para comenzar)</p>
+    </div>
+
+    <canvas id="matrix"></canvas>
+    <canvas id="canvas-fuegos"></canvas>
+
+    <div id="terminal">
+        <div id="line1" class="line"></div>
+        <div id="line2" class="line"></div>
+        <div id="line3" class="line"></div>
+        <div id="progress-bar" class="line"></div>
+        <div id="line-alert" class="line"></div>
+        <div id="line-action" class="line"></div>
+    </div>
+
+    <div id="mensaje-irrompible">
+        > Intenta romper las letras deslizando el dedo...
+        <span class="destaque">"Te amo mucho, de Elio para el mejor papá del mundo"</span>
+        <button id="btn-sorpresa" onclick="lanzarFuegosArtificiales()">PRESIONA PARA SORPRESA 🎉</button>
+    </div>
+
+    <div id="pantalla-galeria">
+        <h2 class="titulo-galeria">Mis Mejores Momentos Contigo</h2>
+        <div class="tarjeta-foto" id="area-swipe">
+            <div class="contenedor-imagen">
+                <img id="imagen-galeria" src="foto1.jpg" alt="Foto">
+            </div>
+            <div class="controles-galeria">
+                <button class="btn-nav" onclick="cambiarFoto(-1)">&#10094;</button>
+                <span id="contador-fotos">1 / 20</span>
+                <button class="btn-nav" onclick="cambiarFoto(1)">&#10095;</button>
+            </div>
+            <div class="instruccion-swipe">
+                <span>👈 Desliza para ver más 👉</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="pantalla-final">
+        <h1 class="neon-texto neon-azul">CONTINUARÁ..........</h1>
+        <h2 class="neon-texto neon-rosa">TE AMO PAPITO</h2>
+        <button class="btn-regresar-galeria" onclick="regresarAGaleria()">🔙 Volver a ver la galería</button>
+    </div>
+
+    <script>
+        // --- MOTOR DE AUDIO SINTÉTICO ---
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playKeystroke() {
+            if (!audioCtx) return;
+            const time = audioCtx.currentTime;
+            const bufferSize = audioCtx.sampleRate * 0.05; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 2500 + Math.random() * 500; 
+            const noiseGain = audioCtx.createGain(); noiseGain.gain.setValueAtTime(0.8, time); noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.02);
+            noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(audioCtx.destination); noise.start(time);
+            
+            const osc = audioCtx.createOscillator(); const oscGain = audioCtx.createGain(); osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, time); osc.frequency.exponentialRampToValueAtTime(50, time + 0.03);
+            oscGain.gain.setValueAtTime(0.3, time); oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.03);
+            osc.connect(oscGain); oscGain.connect(audioCtx.destination); osc.start(time); osc.stop(time + 0.04);
+        }
+
+        // --- MATRIX ENGINE ---
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const musicaRomantica = document.getElementById('audio-musica');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ';
+        const fontSize = 16; let columns = canvas.width / fontSize; 
+        let drops = []; for (let x = 0; x < columns; x++) { drops[x] = 1; }
+        let matrixSpeed = 50; let matrixInterval;
+        let particles = []; let isFormingText = false; let esperandoInteraccion = false;
+        let puntero = { x: -1000, y: -1000, activo: false }; let ultimoVibrato = 0;
+
+        function vibrarAlRomper() {
+            const ahora = Date.now();
+            if (navigator.vibrate && ahora - ultimoVibrato > 50) { navigator.vibrate(15); ultimoVibrato = ahora; }
+        }
+
+        window.addEventListener('mousemove', (e) => { puntero.x = e.clientX; puntero.y = e.clientY; puntero.activo = true; if (isFormingText) vibrarAlRomper(); });
+        window.addEventListener('touchmove', (e) => { puntero.x = e.touches[0].clientX; puntero.y = e.touches[0].clientY; puntero.activo = true; if (isFormingText) vibrarAlRomper(); });
+        window.addEventListener('mouseout', () => puntero.activo = false);
+        window.addEventListener('touchend', () => puntero.activo = false);
+
+        function prepararTexto() {
+            const tempCanvas = document.createElement('canvas'); const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = width; tempCanvas.height = height;
+            let fontSizeText = width < 600 ? width / 7 : width / 12;
+            tempCtx.font = `bold ${fontSizeText}px "Courier New", monospace`;
+            tempCtx.fillStyle = 'white'; tempCtx.textAlign = 'center'; tempCtx.textBaseline = 'middle';
+            tempCtx.fillText('FELIZ', width / 2, height / 2 - fontSizeText * 1.2);
+            tempCtx.fillText('CUMPLEAÑOS', width / 2, height / 2);
+            tempCtx.fillText('PAPÁ', width / 2, height / 2 + fontSizeText * 1.2);
+            const imgData = tempCtx.getImageData(0, 0, width, height).data;
+            const step = width < 600 ? 5 : 8; particles = [];
+            for (let y = 0; y < height; y += step) {
+                for (let x = 0; x < width; x += step) {
+                    if (imgData[(y * width + x) * 4 + 3] > 128) {
+                        particles.push({ x: Math.random() * width, y: Math.random() * height - height, targetX: x, targetY: y, speed: Math.random() * 3 + 2, char: chars.charAt(Math.floor(Math.random() * chars.length)), color: '#0F0' });
+                    }
+                }
+            }
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace'; ctx.textAlign = 'left';
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+            if (isFormingText) {
+                ctx.font = (width < 600 ? '12px' : '14px') + ' monospace'; ctx.textAlign = 'center';
+                particles.forEach(p => {
+                    if (Math.random() < 0.05) p.char = chars.charAt(Math.floor(Math.random() * chars.length));
+                    if (puntero.activo) {
+                        let dxPuntero = p.x - puntero.x; let dyPuntero = p.y - puntero.y; let distancia = Math.sqrt(dxPuntero * dxPuntero + dyPuntero * dyPuntero);
+                        let radioRepulsion = width < 600 ? 60 : 100; 
+                        if (distancia < radioRepulsion) {
+                            let fuerza = (radioRepulsion - distancia) / radioRepulsion;
+                            p.x += (dxPuntero / distancia) * fuerza * 40; p.y += (dyPuntero / distancia) * fuerza * 40;
+                        }
+                    }
+                    let dx = p.targetX - p.x; let dy = p.targetY - p.y;
+                    p.x += dx * 0.08; p.y += dy * 0.08;
+                    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) p.color = Math.random() > 0.95 ? '#fff' : '#0f0';
+                    ctx.fillStyle = p.color; ctx.fillText(p.char, p.x, p.y); 
+                });
+            }
+        }
+
+        function typeWriter(elementId, text, speed, callback) {
+            const el = document.getElementById(elementId); el.style.opacity = 1; let i = 0;
+            function type() {
+                if (i < text.length) {
+                    el.innerHTML += text.charAt(i); if (text.charAt(i) !== ' ') playKeystroke();
+                    i++; if(navigator.vibrate && i % 4 === 0) navigator.vibrate(10); 
+                    setTimeout(type, speed);
+                } else { if (callback) setTimeout(callback, 500); }
+            } type();
+        }
+
+        function simulateProgress(elementId, duration, callback) {
+            const el = document.getElementById(elementId); el.style.opacity = 1; let progress = 0; const totalBlocks = 20; 
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 8) + 1; if (progress > 100) progress = 100;
+                playKeystroke(); if(navigator.vibrate) navigator.vibrate([20, 30, 20]);
+                let filled = Math.floor((progress / 100) * totalBlocks); let empty = totalBlocks - filled;
+                let bar = '[' + '█'.repeat(filled) + '░'.repeat(empty) + '] ' + progress + '%';
+                el.innerHTML = '> Inyectando Payload_Malicioso.exe... <br>' + bar;
+                if (progress === 100) { clearInterval(interval); setTimeout(callback, 800); }
+            }, duration / 20);
+        }
+
+        function iniciarAtaque() {
+            initAudio(); document.getElementById('pantalla-inicio').style.opacity = 0;
+            setTimeout(() => { document.getElementById('pantalla-inicio').style.display = 'none'; }, 500);
+            matrixInterval = setInterval(drawMatrix, matrixSpeed);
+            setTimeout(() => {
+                typeWriter('line1', '> Estableciendo conexion remota con dispositivo objetivo... [EXITO]', 60, () => {
+                    typeWriter('line2', '> Evadiendo protocolos de seguridad y firewall... [BYPASS COMPLETADO]', 50, () => {
+                        typeWriter('line3', '> Extrayendo informacion privada, fotos y contraseñas...', 60, () => {
+                            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            simulateProgress('progress-bar', 4000, () => {
+                                if(navigator.vibrate) navigator.vibrate([400, 200, 400]); 
+                                typeWriter('line-alert', '> ¡ADVERTENCIA CRITICA! Virus troyano instalado. Control total del dispositivo adquirido.', 50, () => {
+                                    typeWriter('line-action', '> TOCA LA PANTALLA INMEDIATAMENTE PARA ABORTAR INFECCION Y RESTAURAR EL SISTEMA', 45, () => {
+                                        document.getElementById('line-action').innerHTML += '<span class="cursor">_</span>';
+                                        esperandoInteraccion = true;
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            }, 1000); 
+        }
+
+        function desbloquearSistema() {
+            if (!esperandoInteraccion) return; esperandoInteraccion = false;
+            musicaRomantica.play().catch(e=>console.log(e));
+            if(navigator.vibrate) navigator.vibrate([100, 50, 100, 500, 100, 50, 100]);
+            document.getElementById('terminal').style.opacity = 0; isFormingText = true;
+            clearInterval(matrixInterval); matrixInterval = setInterval(drawMatrix, 20); 
+            setTimeout(() => {
+                clearInterval(matrixInterval); matrixInterval = setInterval(drawMatrix, 60); 
+                setTimeout(() => { document.getElementById('mensaje-irrompible').style.opacity = 1; }, 1500);
+            }, 1000);
+        }
+
+        window.addEventListener('click', (e) => {
+            if(e.target.id !== 'pantalla-inicio' && e.target.id !== 'btn-sorpresa' && !e.target.closest('#pantalla-galeria') && !e.target.closest('#pantalla-final')) desbloquearSistema();
+        });
+        window.addEventListener('touchstart', (e) => {
+            if(e.target.id !== 'pantalla-inicio' && e.target.id !== 'btn-sorpresa' && !e.target.closest('#pantalla-galeria') && !e.target.closest('#pantalla-final')) desbloquearSistema();
+        });
+
+        // --- SISTEMA DE FUEGOS ARTIFICIALES ---
+        const canvasFuegos = document.getElementById('canvas-fuegos'); const ctxFuegos = canvasFuegos.getContext('2d');
+        canvasFuegos.width = window.innerWidth; canvasFuegos.height = window.innerHeight;
+        let fuegosActivos = false; let cohetes = []; let particulasExplosion = [];
+        let coloresFuegos = ['#ff3333', '#33ff33', '#3366ff', '#ffff33', '#ff33ff', '#33ffff', '#ffffff'];
+        let intervaloFuegos1, intervaloFuegos2;
+
+        function lanzarFuegosArtificiales() {
+            if(fuegosActivos) return; fuegosActivos = true;
+            document.getElementById('btn-sorpresa').style.display = 'none';
+            loopFuegos();
+            intervaloFuegos1 = setInterval(crearCohete, 400); intervaloFuegos2 = setInterval(crearCohete, 700); 
+            if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+            
+            // LOS FUEGOS AHORA DURAN 7 SEGUNDOS
+            setTimeout(iniciarGaleria, 7000);
+        }
+
+        function crearCohete() {
+            cohetes.push({ x: Math.random() * canvasFuegos.width, y: canvasFuegos.height, targetY: Math.random() * (canvasFuegos.height * 0.5), speed: 6 + Math.random() * 5, color: coloresFuegos[Math.floor(Math.random() * coloresFuegos.length)] });
+        }
+        function crearExplosion(x, y, color) {
+            if(navigator.vibrate) navigator.vibrate(30);
+            for(let i = 0; i < 40; i++) particulasExplosion.push({ x: x, y: y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, life: 1, decay: 0.015 + Math.random() * 0.02, color: color });
+        }
+        function loopFuegos() {
+            if(!fuegosActivos) return; 
+            requestAnimationFrame(loopFuegos);
+            ctxFuegos.clearRect(0, 0, canvasFuegos.width, canvasFuegos.height);
+            for (let i = cohetes.length - 1; i >= 0; i--) {
+                let c = cohetes[i]; c.y -= c.speed;
+                ctxFuegos.fillStyle = c.color; ctxFuegos.beginPath(); ctxFuegos.arc(c.x, c.y, 3, 0, Math.PI * 2); ctxFuegos.fill();
+                if (c.y <= c.targetY) { crearExplosion(c.x, c.y, c.color); cohetes.splice(i, 1); }
+            }
+            for (let i = particulasExplosion.length - 1; i >= 0; i--) {
+                let p = particulasExplosion[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= p.decay;
+                ctxFuegos.fillStyle = p.color; ctxFuegos.globalAlpha = Math.max(0, p.life); ctxFuegos.beginPath(); ctxFuegos.arc(p.x, p.y, 2, 0, Math.PI * 2); ctxFuegos.fill();
+                if (p.life <= 0) particulasExplosion.splice(i, 1);
+            }
+            ctxFuegos.globalAlpha = 1;
+        }
+
+        // ==========================================
+        // --- LÓGICA DE LA GALERÍA Y PANTALLA FINAL ---
+        // ==========================================
+        let fotos = [];
+        for(let i = 1; i <= 20; i++) { fotos.push(`foto${i}.jpg`); } 
+        let fotoActual = 0;
+        let temporizadorScrollAuto;
+        const imgElement = document.getElementById('imagen-galeria');
+        const contadorElement = document.getElementById('contador-fotos');
+        const pantallaGaleria = document.getElementById('pantalla-galeria');
+        const pantallaFinal = document.getElementById('pantalla-final');
+
+        function iniciarGaleria() {
+            clearInterval(matrixInterval); clearInterval(intervaloFuegos1); clearInterval(intervaloFuegos2);
+            fuegosActivos = false;
+            
+            document.getElementById('matrix').style.opacity = 0;
+            document.getElementById('canvas-fuegos').style.opacity = 0;
+            document.getElementById('mensaje-irrompible').style.opacity = 0;
+
+            setTimeout(() => {
+                pantallaGaleria.style.pointerEvents = 'auto';
+                pantallaGaleria.style.opacity = 1;
+                if(navigator.vibrate) navigator.vibrate([50, 100, 50]);
+                
+                // INICIA EL AUTO-PLAY DE 4 SEGUNDOS
+                reiniciarAutoScroll();
+            }, 1000);
+        }
+
+        function reiniciarAutoScroll() {
+            clearInterval(temporizadorScrollAuto);
+            temporizadorScrollAuto = setInterval(() => {
+                if(pantallaGaleria.style.opacity == 1) {
+                    cambiarFoto(1, true); 
+                }
+            }, 4000); 
+        }
+
+        function cambiarFoto(direccion, esAutomatico = false) {
+            if (direccion === 1 && fotoActual === fotos.length - 1) {
+                mostrarPantallaFinal();
+                return;
+            }
+
+            imgElement.style.opacity = 0;
+            imgElement.style.transform = `scale(0.95) translateX(${direccion * 20}px)`;
+            if(navigator.vibrate) navigator.vibrate(15);
+            
+            setTimeout(() => {
+                fotoActual += direccion;
+                if (fotoActual < 0) fotoActual = fotos.length - 1;
+                
+                imgElement.src = fotos[fotoActual];
+                contadorElement.innerText = `${fotoActual + 1} / 20`;
+                
+                imgElement.style.transform = `scale(1) translateX(0px)`;
+                imgElement.style.opacity = 1;
+            }, 300); 
+
+            reiniciarAutoScroll(); 
+        }
+
+        function mostrarPantallaFinal() {
+            clearInterval(temporizadorScrollAuto); 
+            pantallaGaleria.style.opacity = 0;
+            pantallaGaleria.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                pantallaFinal.style.pointerEvents = 'auto';
+                pantallaFinal.style.opacity = 1;
+            }, 1000);
+        }
+
+        function regresarAGaleria() {
+            pantallaFinal.style.opacity = 0;
+            pantallaFinal.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                fotoActual = 0; 
+                imgElement.src = fotos[fotoActual];
+                contadorElement.innerText = `1 / 20`;
+                
+                pantallaGaleria.style.pointerEvents = 'auto';
+                pantallaGaleria.style.opacity = 1;
+                reiniciarAutoScroll(); 
+            }, 1000);
+        }
+
+        let touchStartX = 0; let touchEndX = 0;
+        const areaSwipe = document.getElementById('area-swipe');
+
+        areaSwipe.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+        areaSwipe.addEventListener('touchend', e => { touchEndX = e.changedTouches[0].screenX; manejarSwipe(); }, {passive: true});
+
+        function manejarSwipe() {
+            if (touchStartX - touchEndX > 50) cambiarFoto(1);
+            if (touchEndX - touchStartX > 50) cambiarFoto(-1);
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = canvasFuegos.width = window.innerWidth; 
+            height = canvas.height = canvasFuegos.height = window.innerHeight;
+            columns = canvas.width / fontSize; 
+            if(!fuegosActivos && pantallaGaleria.style.opacity == 0 && pantallaFinal.style.opacity == 0) prepararTexto(); 
+        });
+        prepararTexto();
+
+    </script>
+</body>
+</html>
